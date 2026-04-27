@@ -612,6 +612,4 @@ my-robot/.env
 __pycache__/
 *.pyc
 .cache/
-```#   o n s h a p e t o r o b o t _ t u t o r i a l  
- #   o n s h a p e t o r o b o t _ t u t o r i a l  
- 
+```
