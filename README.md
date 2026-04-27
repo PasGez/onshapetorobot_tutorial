@@ -470,10 +470,10 @@ simulate my-robot/robot.xml
 On Windows:
 
 ```cmd
-simulate my-robot\robot.xml
+simulate.exe my-robot\robot.xml
 ```
 
-If `simulate` is not found, add the MuJoCo binary directory to `PATH`, or open the XML using your MuJoCo installation manually.
+If `simulate` is not found, add the MuJoCo `bin` directory to `PATH`, or run it directly from the MuJoCo installation directory. On Windows it is `bin/simulate.exe`.
 
 ## 16. Check the exported joints
 
