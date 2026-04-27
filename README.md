@@ -23,6 +23,12 @@ Onshape Assembly -> onshape-to-robot -> MuJoCo XML + meshes
 
 Open your robot or gripper assembly in Onshape.
 
+For this tutorial, use the following Onshape Assembly:
+
+```text
+https://cad.onshape.com/documents/371b06a42f475c9907de5e85/w/adb936e8683c4e5f511239d8/e/13316bfea1db3d35234ddf73
+```
+
 The export must be performed from an **Assembly tab**, not from a Part Studio.
 
 Copy the browser URL while the Assembly tab is active. The URL will be used later in `config.json`.
@@ -125,6 +131,10 @@ Use this when one of the two prismatic axes is opposite to the desired exported 
 
 If both prismatic mate Z axes point outward and positive motion should instead close the gripper inward, both may need inversion:
 
+<img src="assets/images/onshape-outward-z-axes.png" alt="Onshape gripper mate Z axes pointing outward" width="700">
+
+In the example above, both slider mate Z axes point outward from the gripper center. Since a grasp should move both fingers inward, both joints should use the `_inv` suffix:
+
 ```text
 dof_left_finger_inv
 dof_right_finger_inv
@@ -161,24 +171,15 @@ dof_left_finger
 dof_right_finger
 ```
 
-## 6. Add joint limits in Onshape
+## 6. Add material to parts
 
-Set physical limits on every movable joint.
+Before exporting your own model, make sure you remembered to assign a material to each part in the Onshape Part Studio. In the tutorial document linked above, this has already been done.
 
-For slider fingers, use the limits in the Slider Mate dialog.
+<img src="assets/images/onshape-edit-material.png" alt="Onshape Edit material menu for a part" width="700">
 
-Example:
+Right-click each part, select **Edit material...**, and choose a material from the Onshape material library.
 
-```text
-Min: 0 mm
-Max: 20 mm
-```
-
-or use the actual mechanical stroke of the gripper.
-
-For revolute joints, set angular limits if the joint is not meant to rotate freely.
-
-Joint limits are important because they are exported to the generated robot model.
+This is important because the material density gives each part a mass. MuJoCo needs valid masses and inertial properties to simulate the exported model correctly.
 
 ## 7. Create Onshape API keys
 
@@ -399,12 +400,12 @@ Minimal MuJoCo configuration:
 
 ```json
 {
-  "url": "https://cad.onshape.com/documents/<DOCUMENT_ID>/w/<WORKSPACE_ID>/e/<ELEMENT_ID>",
+  "url": "https://cad.onshape.com/documents/371b06a42f475c9907de5e85/w/adb936e8683c4e5f511239d8/e/13316bfea1db3d35234ddf73",
   "output_format": "mujoco"
 }
 ```
 
-Replace the URL with the Assembly URL copied from Onshape.
+This URL points to the Onshape Assembly used in this tutorial. For your own robot, replace it with the Assembly URL copied from Onshape.
 
 If the Onshape document contains more than one assembly, specify the assembly name:
 
@@ -585,31 +586,3 @@ Add `.env` to `.gitignore`:
 ```
 
 If an API secret key is accidentally shared publicly, revoke it immediately from the Onshape Developer Portal and generate a new key pair.
-
-## 19. Minimal repository layout
-
-Recommended GitHub repository layout:
-
-```text
-repo/
-├── README.md
-├── .gitignore
-└── my-robot/
-    ├── config.json
-    └── assets/
-```
-
-Do not commit:
-
-```text
-my-robot/.env
-```
-
-## 20. Minimal `.gitignore`
-
-```gitignore
-.env
-__pycache__/
-*.pyc
-.cache/
-```
