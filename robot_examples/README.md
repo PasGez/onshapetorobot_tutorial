@@ -116,6 +116,8 @@ gripper = 0.014 -> closed
 
 `onshape-to-robot` exports a usable MuJoCo file, but for these examples `robot.xml` was edited manually to make the controls cleaner and safer.
 
+Useful reference: [MuJoCo XML reference](https://mujoco.readthedocs.io/en/stable/XMLreference.html).
+
 The edits are all in `robot.xml`. Do not edit `scene.xml` for these control changes: `scene.xml` only includes `robot.xml` and adds the floor, lighting, and viewer scene.
 
 ### Step 1: add wrist limits
