@@ -224,6 +224,32 @@ export ONSHAPE_ACCESS_KEY=YOUR_ACCESS_KEY
 
 Important: `onshape-to-robot` loads `.env` from the current directory or one of its parent directories. If `.env` is inside `my-robot`, run the export from inside `my-robot`.
 
+You can also set the variables globally using `setx`:
+
+```cmd
+setx ONSHAPE_API "https://cad.onshape.com"
+setx ONSHAPE_ACCESS_KEY "LA_TUA_ACCESS_KEY"
+setx ONSHAPE_SECRET_KEY "LA_TUA_SECRET_KEY"
+```
+
+After using `setx`, close the terminal and open a new one.
+
+Verify:
+
+```cmd
+echo %ONSHAPE_API%
+echo %ONSHAPE_ACCESS_KEY%
+echo %ONSHAPE_SECRET_KEY%
+```
+
+If you want to set the variables only for the current terminal session:
+
+```cmd
+set ONSHAPE_API=https://cad.onshape.com
+set ONSHAPE_ACCESS_KEY=LA_TUA_ACCESS_KEY
+set ONSHAPE_SECRET_KEY=LA_TUA_SECRET_KEY
+```
+
 ## 9. Create `config.json`
 
 Create the configuration file inside `my-robot`.
