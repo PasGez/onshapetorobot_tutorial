@@ -186,7 +186,7 @@ This is important because the material density gives each part a mass. MuJoCo ne
 Go to:
 
 ```text
-https://dev-portal.onshape.com/keys
+https://cad.onshape.com/user/developer/apiKeys
 ```
 
 Create a new API key pair.
@@ -235,13 +235,13 @@ If using the native MuJoCo viewer, make sure the MuJoCo executable directory is 
 Install with pip:
 
 ```bash
-pip install onshape-to-robot
+python -m pip install onshape-to-robot
 ```
 
-or:
+If your system uses `python3` instead of `python`:
 
 ```bash
-python -m pip install onshape-to-robot
+python3 -m pip install onshape-to-robot
 ```
 
 Check that the command is available:
@@ -250,15 +250,80 @@ Check that the command is available:
 onshape-to-robot --help
 ```
 
-If the command is not found on Windows, the Python Scripts directory is probably not in `PATH`.
+### Fix `onshape-to-robot` not found
 
-Typical Windows Scripts path:
+If the terminal cannot find `onshape-to-robot` after installation, the package is usually installed but Python's script directory is not in `PATH`.
+
+Examples:
 
 ```text
-C:\Users\<USER>\AppData\Local\Packages\PythonSoftwareFoundation.Python.<VERSION>\LocalCache\local-packages\Python<VERSION>\Scripts
+onshape-to-robot : The term 'onshape-to-robot' is not recognized
 ```
 
-Add that directory to the user `PATH`, then close and reopen the terminal.
+```text
+onshape-to-robot : Termine 'onshape-to-robot' non riconosciuto
+```
+
+First check that the package is installed:
+
+```bash
+python -m pip show onshape-to-robot
+```
+
+If you only need to run it once and do not want to edit `PATH`, use the package entry point directly:
+
+```bash
+python -c "from onshape_to_robot.export import main; main()" --help
+python -c "from onshape_to_robot.export import main; main()" my-robot
+```
+
+To fix `PATH`, first find the directory where Python installed the `onshape-to-robot` script.
+
+Windows PowerShell:
+
+```powershell
+$Scripts = python -c "import pathlib, site, sysconfig; candidates = [sysconfig.get_path('scripts'), str(pathlib.Path(site.getuserbase()) / 'Scripts'), str(pathlib.Path(site.getusersitepackages()).parent / 'Scripts')]; print(next(p for p in candidates if p and pathlib.Path(p, 'onshape-to-robot.exe').exists()))"
+$Scripts
+```
+
+Linux/macOS shell:
+
+```bash
+Scripts=$(python3 -c "import pathlib, site, sysconfig; candidates = [sysconfig.get_path('scripts'), str(pathlib.Path(site.getuserbase()) / 'bin'), str(pathlib.Path(site.getusersitepackages()).parent / 'bin')]; print(next(p for p in candidates if p and pathlib.Path(p, 'onshape-to-robot').exists()))")
+echo "$Scripts"
+```
+
+Add it to the current terminal session.
+
+Windows PowerShell:
+
+```powershell
+$env:Path += ";$Scripts"
+onshape-to-robot --help
+```
+
+Linux/macOS shell:
+
+```bash
+export PATH="$PATH:$Scripts"
+onshape-to-robot --help
+```
+
+To make the Windows fix permanent for the current user:
+
+```powershell
+$UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
+if (($UserPath -split ";") -notcontains $Scripts) {
+  $NewPath = if ([string]::IsNullOrWhiteSpace($UserPath)) { $Scripts } else { "$UserPath;$Scripts" }
+  [Environment]::SetEnvironmentVariable("Path", $NewPath, "User")
+}
+```
+
+Close and reopen PowerShell, then verify:
+
+```powershell
+onshape-to-robot --help
+```
 
 ## 10. Ubuntu setup
 
@@ -435,12 +500,12 @@ cd %USERPROFILE%\Documents
 onshape-to-robot my-robot
 ```
 
-If Windows cannot find `onshape-to-robot`, run it with the full path to the installed executable or fix the Python Scripts directory in `PATH`.
+If the terminal cannot find `onshape-to-robot`, either fix `PATH` using section 9 or use the package entry point directly.
 
 Example:
 
-```cmd
-"C:\Users\<USER>\AppData\Local\Packages\PythonSoftwareFoundation.Python.<VERSION>\LocalCache\local-packages\Python<VERSION>\Scripts\onshape-to-robot.exe" my-robot
+```bash
+python -c "from onshape_to_robot.export import main; main()" my-robot
 ```
 
 ## 14. Expected output
@@ -547,7 +612,27 @@ echo $ONSHAPE_ACCESS_KEY
 
 The Python Scripts directory is not in `PATH`.
 
-Fix the `PATH`, reopen the terminal, and try again.
+First check that the package is installed:
+
+```bash
+python -m pip show onshape-to-robot
+```
+
+If you need an immediate workaround, run the package entry point directly:
+
+```bash
+python -c "from onshape_to_robot.export import main; main()" my-robot
+```
+
+For a permanent fix, use the `Fix onshape-to-robot not found` steps in section 9.
+
+On Windows PowerShell, the temporary `PATH` fix is:
+
+```powershell
+$Scripts = python -c "import pathlib, site, sysconfig; candidates = [sysconfig.get_path('scripts'), str(pathlib.Path(site.getuserbase()) / 'Scripts'), str(pathlib.Path(site.getusersitepackages()).parent / 'Scripts')]; print(next(p for p in candidates if p and pathlib.Path(p, 'onshape-to-robot.exe').exists()))"
+$env:Path += ";$Scripts"
+onshape-to-robot --help
+```
 
 ### The export uses the wrong Onshape tab
 
