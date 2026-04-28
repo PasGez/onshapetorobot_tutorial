@@ -1,0 +1,76 @@
+<?xml version="1.0" ?>
+<!-- Generated using onshape-to-robot -->
+<!-- Onshape https://cad.onshape.com/documents/371b06a42f475c9907de5e85/w/adb936e8683c4e5f511239d8/e/13316bfea1db3d35234ddf73 -->
+<mujoco model="C:\Users\alexl\Documents\WORK\my-robot">
+  <compiler angle="radian" meshdir="assets" autolimits="true"/>
+  <default>
+    <default class="C:\Users\alexl\Documents\WORK\my-robot">
+      <joint frictionloss="0.1" armature="0.005"/>
+      <position kp="50" dampratio="1"/>
+      <default class="visual">
+        <geom type="mesh" contype="0" conaffinity="0" group="2"/>
+      </default>
+      <default class="collision">
+        <geom group="3"/>
+      </default>
+    </default>
+  </default>
+  <worldbody>
+    <!-- Link hand -->
+    <body name="hand" pos="0 0 0" quat="1 0 0 0" childclass="C:\Users\alexl\Documents\WORK\my-robot">
+      <freejoint name="hand_freejoint"/>
+      <inertial pos="-0 0 0.061711" mass="0.213929" fullinertia="0.000113591 0.000123444 0.000157757 2.08369e-05 0 0"/>
+      <!-- Part hand -->
+      <geom type="mesh" class="visual" pos="-0 0 0.045" quat="0 -0.944524 0.328442 0" mesh="hand" material="hand_material"/>
+      <geom type="mesh" class="collision" pos="-0 0 0.045" quat="0 -0.944524 0.328442 0" mesh="hand" material="hand_material"/>
+      <!-- Link wrist -->
+      <body name="wrist" pos="0 0 0.03" quat="1 0 0 0">
+        <!-- Joint from hand to wrist -->
+        <joint axis="0 0 1" name="wrist_rotation" type="hinge" range="-3.141592653589793 3.141592653589793"/>
+        <inertial pos="-0 0 -0.015" mass="0.462403" fullinertia="0.000106931 0.000106931 0.000144501 0 0 0"/>
+        <!-- Part wrist -->
+        <geom type="mesh" class="visual" pos="0 0 0.015" quat="0 1 0 0" mesh="wrist" material="wrist_material"/>
+        <geom type="mesh" class="collision" pos="0 0 0.015" quat="0 1 0 0" mesh="wrist" material="wrist_material"/>
+      </body>
+      <!-- Link finger_right -->
+      <body name="finger_right" pos="0.0203311 -0.0160845 0.082" quat="0.308041 0.308041 -0.636483 -0.636483">
+        <!-- Joint from hand to finger_right -->
+        <joint axis="0 0 1" name="right_finger" type="slide" range="0 0.014"/>
+        <inertial pos="-3.961e-09 0.0283171 0.00551111" mass="0.00930678" fullinertia="2.39293e-06 2.61133e-07 2.45826e-06 1e-12 -0 -4.7648e-08"/>
+        <!-- Part finger_right -->
+        <geom type="mesh" class="visual" pos="-0 -0.04 0.025" quat="0.5 0.5 0.5 -0.5" mesh="finger_right" material="finger_right_material"/>
+        <geom type="mesh" class="collision" pos="-0 -0.04 0.025" quat="0.5 0.5 0.5 -0.5" mesh="finger_right" material="finger_right_material"/>
+      </body>
+      <!-- Link finger_left -->
+      <body name="finger_left" pos="-0.018822 0.0148906 0.082" quat="0.308041 -0.308041 0.636483 -0.636483">
+        <!-- Joint from hand to finger_left -->
+        <joint axis="0 0 1" name="left_finger" type="slide" range="0 0.014"/>
+        <inertial pos="2.327e-09 -0.0283171 0.00551112" mass="0.00930678" fullinertia="2.39293e-06 2.61133e-07 2.45826e-06 1e-12 0 4.7648e-08"/>
+        <!-- Part finger_left -->
+        <geom type="mesh" class="visual" pos="-0 0.04 0.025" quat="0.5 -0.5 -0.5 -0.5" mesh="finger_left" material="finger_left_material"/>
+        <geom type="mesh" class="collision" pos="-0 0.04 0.025" quat="0.5 -0.5 -0.5 -0.5" mesh="finger_left" material="finger_left_material"/>
+      </body>
+    </body>
+  </worldbody>
+  <asset>
+    <mesh file="finger_right.stl"/>
+    <mesh file="hand.stl"/>
+    <mesh file="finger_left.stl"/>
+    <mesh file="wrist.stl"/>
+    <material name="hand_material" rgba="0.196078 0.196078 0.196078 1"/>
+    <material name="wrist_material" rgba="0.917647 0.917647 0.917647 1"/>
+    <material name="finger_right_material" rgba="0.917647 0.917647 0.917647 1"/>
+    <material name="finger_left_material" rgba="0.917647 0.917647 0.917647 1"/>
+  </asset>
+  <tendon>
+    <fixed name="gripper">
+      <joint joint="right_finger" coef="0.5"/>
+      <joint joint="left_finger" coef="0.5"/>
+    </fixed>
+  </tendon>
+  <actuator>
+    <position class="C:\Users\alexl\Documents\WORK\my-robot" name="wrist_rotation" joint="wrist_rotation" ctrlrange="-3.141592653589793 3.141592653589793"/>
+    <position class="C:\Users\alexl\Documents\WORK\my-robot" name="gripper" tendon="gripper" ctrlrange="0 0.014"/>
+  </actuator>
+  <equality/>
+</mujoco>

@@ -137,6 +137,12 @@ python -c "import mujoco; print(mujoco.__version__)"
 python -c "import mujoco.viewer; print('mujoco.viewer ok')"
 ```
 
+The GUI examples also use Python's `tkinter` module. It is usually included on Windows and macOS; on some Linux systems install it with:
+
+```bash
+sudo apt install python3-tk
+```
+
 If `onshape-to-robot` is not found, see [Troubleshooting](#15-troubleshooting).
 
 ## 6. Create Onshape API keys
@@ -482,7 +488,17 @@ Fixed links should start with:
 fix_
 ```
 
-## 16. Security note
+## 16. Next examples
+
+After you can export and open `scene.xml`, continue with the runnable control examples:
+
+```text
+robot_examples/README.md
+```
+
+That README shows how to load the model, apply joint and actuator limits, drive both fingers with a single `gripper` actuator, move the actuators with preset dynamics, and control the gripper from a small GUI.
+
+## 17. Security note
 
 Never commit `.env` files or API keys to GitHub.
 
