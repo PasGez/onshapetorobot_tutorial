@@ -219,7 +219,7 @@ You can either install MuJoCo from the official release binaries or use the Pyth
 Python installation:
 
 ```bash
-pip install mujoco
+python -m pip install mujoco
 ```
 
 Verify the Python installation:
@@ -228,7 +228,13 @@ Verify the Python installation:
 python -c "import mujoco; print(mujoco.__version__)"
 ```
 
-If using the native MuJoCo viewer, make sure the MuJoCo executable directory is available in your system `PATH`.
+The Python package includes a viewer that can be launched without installing the native MuJoCo `simulate` executable:
+
+```bash
+python -m mujoco.viewer --mjcf my-robot/robot.xml
+```
+
+If using the native MuJoCo release viewer instead, make sure the MuJoCo executable directory is available in your system `PATH`.
 
 ## 9. Install onshape-to-robot
 
@@ -526,19 +532,31 @@ The exact generated filenames may depend on the exporter version and configurati
 
 ## 15. Test in MuJoCo
 
-If the MuJoCo viewer is available from the terminal:
+If you installed MuJoCo with `pip`, use the Python viewer:
+
+```bash
+python -m mujoco.viewer --mjcf my-robot/robot.xml
+```
+
+On Windows PowerShell:
+
+```powershell
+python -m mujoco.viewer --mjcf .\my-robot\robot.xml
+```
+
+If you installed the native MuJoCo release and its `bin` directory is in `PATH`, you can also use:
 
 ```bash
 simulate my-robot/robot.xml
 ```
 
-On Windows:
+On Windows with the native viewer:
 
 ```cmd
 simulate.exe my-robot\robot.xml
 ```
 
-If `simulate` is not found, add the MuJoCo `bin` directory to `PATH`, or run it directly from the MuJoCo installation directory. On Windows it is `bin/simulate.exe`.
+If `simulate` is not found, either use the Python viewer above or add the native MuJoCo `bin` directory to `PATH`.
 
 ## 16. Check the exported joints
 
@@ -632,6 +650,28 @@ On Windows PowerShell, the temporary `PATH` fix is:
 $Scripts = python -c "import pathlib, site, sysconfig; candidates = [sysconfig.get_path('scripts'), str(pathlib.Path(site.getuserbase()) / 'Scripts'), str(pathlib.Path(site.getusersitepackages()).parent / 'Scripts')]; print(next(p for p in candidates if p and pathlib.Path(p, 'onshape-to-robot.exe').exists()))"
 $env:Path += ";$Scripts"
 onshape-to-robot --help
+```
+
+### `simulate` is not recognized as an internal or external command
+
+The native MuJoCo viewer executable is not installed or its `bin` directory is not in `PATH`.
+
+If you installed MuJoCo with `pip`, use the Python viewer instead:
+
+```bash
+python -m mujoco.viewer --mjcf my-robot/robot.xml
+```
+
+On Windows PowerShell:
+
+```powershell
+python -m mujoco.viewer --mjcf .\my-robot\robot.xml
+```
+
+If Python cannot import `mujoco`, install it first:
+
+```bash
+python -m pip install mujoco
 ```
 
 ### The export uses the wrong Onshape tab
