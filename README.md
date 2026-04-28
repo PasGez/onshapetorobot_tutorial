@@ -1,29 +1,29 @@
 # Onshape Gripper Export to MuJoCo
 
-This repository documents the workflow used to export an Onshape robotic gripper assembly to a MuJoCo model using [`onshape-to-robot`](https://github.com/Rhoban/onshape-to-robot).
+This repository documents a complete workflow to export an Onshape robotic gripper assembly to MuJoCo using [`onshape-to-robot`](https://github.com/Rhoban/onshape-to-robot).
 
 The pipeline is:
 
 ```text
-Onshape Assembly -> onshape-to-robot -> MuJoCo XML + meshes
+Onshape Assembly -> onshape-to-robot -> robot.xml + scene.xml + meshes -> MuJoCo viewer
 ```
 
-`onshape-to-robot` retrieves the CAD assembly from Onshape through the Onshape API and exports robot description formats including URDF, SDF, and MuJoCo XML. See the official documentation: https://onshape-to-robot.readthedocs.io/en/latest/
+`robot.xml` is the exported robot model. `scene.xml` includes `robot.xml` and adds the MuJoCo scene settings used by the viewer. For testing in MuJoCo, open `scene.xml`.
 
 ## References
 
 - Onshape: https://cad.onshape.com/
-- Onshape Developer Portal: https://dev-portal.onshape.com/keys
+- Onshape API keys: https://cad.onshape.com/user/developer/apiKeys
 - onshape-to-robot documentation: https://onshape-to-robot.readthedocs.io/en/latest/
 - onshape-to-robot GitHub repository: https://github.com/Rhoban/onshape-to-robot
 - MuJoCo website: https://mujoco.org/
 - MuJoCo GitHub releases: https://github.com/google-deepmind/mujoco/releases
 
-## 1. CAD preparation in Onshape
+## 1. Prepare the CAD in Onshape
 
 Open your robot or gripper assembly in Onshape.
 
-For this tutorial, use the following Onshape Assembly:
+For this tutorial, use this Onshape Assembly:
 
 ```text
 https://cad.onshape.com/documents/371b06a42f475c9907de5e85/w/adb936e8683c4e5f511239d8/e/13316bfea1db3d35234ddf73
@@ -33,33 +33,29 @@ The export must be performed from an **Assembly tab**, not from a Part Studio.
 
 Copy the browser URL while the Assembly tab is active. The URL will be used later in `config.json`.
 
-Example URL format:
+Expected URL format:
 
 ```text
 https://cad.onshape.com/documents/<DOCUMENT_ID>/w/<WORKSPACE_ID>/e/<ELEMENT_ID>
 ```
 
-## 2. Joint naming convention
+## 2. Name the Onshape mates
 
 `onshape-to-robot` recognizes joints from Onshape mates using naming conventions.
 
-Use:
+Movable joints must start with:
 
 ```text
-dof_<joint_name>
+dof_
 ```
 
-for movable joints.
-
-Use:
+Fixed connections must start with:
 
 ```text
-fix_<fixed_name>
+fix_
 ```
 
-for fixed connections.
-
-Typical gripper example:
+Typical gripper mate names:
 
 ```text
 fix_gripper_base
@@ -68,16 +64,7 @@ dof_left_finger
 dof_right_finger
 ```
 
-For a gripper with two prismatic fingers:
-
-```text
-fix_gripper_base
-dof_wrist_rotation
-dof_left_finger
-dof_right_finger
-```
-
-The expected exported joint types are:
+Expected exported joint types:
 
 | Onshape mate type | Name example | Exported joint type |
 |---|---|---|
@@ -86,9 +73,9 @@ The expected exported joint types are:
 | Slider mate | `dof_left_finger` | Prismatic / slide joint |
 | Slider mate | `dof_right_finger` | Prismatic / slide joint |
 
-## 3. Joint axis convention
+## 3. Check joint axis direction
 
-For `onshape-to-robot`, joint motion is defined with respect to the joint frame shown in Onshape when clicking the mate in the assembly tree.
+For `onshape-to-robot`, joint motion is defined with respect to the mate frame shown in Onshape.
 
 The important convention is:
 
@@ -97,91 +84,62 @@ Revolute mate -> rotation around local Z axis
 Slider mate   -> translation along local Z axis
 ```
 
-For a two-finger gripper, the prismatic axes should be physically consistent with the desired grasping direction.
+For a two-finger gripper, decide which positive motion should close the fingers.
 
-For example, if both fingers should close when commanded with a positive value, the positive joint directions should point toward the center of the gripper:
-
-```text
-left finger  +Z -> center
-right finger +Z -> center
-```
-
-In global coordinates, this usually means that the two prismatic axes are opposite.
-
-## 4. Axis inversion using `_inv`
-
-If a joint axis is oriented in the opposite direction, add the `_inv` suffix to the joint name.
-
-Example:
+If a joint axis is oriented in the opposite direction, add `_inv` to the joint name:
 
 ```text
 dof_right_finger_inv
 ```
 
-This tells `onshape-to-robot` to invert the exported joint axis.
-
-Example case:
+If both slider mate Z axes point outward and positive motion should close inward, use:
 
 ```text
-dof_left_finger
+dof_left_finger_inv
 dof_right_finger_inv
 ```
 
-Use this when one of the two prismatic axes is opposite to the desired exported convention.
+Do not add `_inv` blindly. First inspect the mate frame in Onshape and check the local Z axis direction.
 
-If both prismatic mate Z axes point outward and positive motion should instead close the gripper inward, both may need inversion:
+Example of outward slider axes:
 
 <img src="assets/images/onshape-outward-z-axes.png" alt="Onshape gripper mate Z axes pointing outward" width="700">
 
-In the example above, both slider mate Z axes point outward from the gripper center. Since a grasp should move both fingers inward, both joints should use the `_inv` suffix:
+## 4. Assign material to parts
 
-```text
-dof_left_finger_inv
-dof_right_finger_inv
-```
-
-Do not add `_inv` blindly. First inspect the mate frame in Onshape by clicking the mate in the assembly tree and checking the Z axis direction.
-
-## 5. Recommended Onshape mate setup for a simple gripper
-
-For a gripper with one wrist revolute joint and two slider fingers:
-
-```text
-fix_gripper_base
-dof_wrist_rotation
-dof_left_finger_inv
-dof_right_finger_inv
-```
-
-This assumes:
-
-```text
-left finger slider Z  -> outward
-right finger slider Z -> outward
-```
-
-and the desired exported positive motion is inward closing.
-
-If the slider Z axes already point inward, use:
-
-```text
-fix_gripper_base
-dof_wrist_rotation
-dof_left_finger
-dof_right_finger
-```
-
-## 6. Add material to parts
-
-Before exporting your own model, make sure you remembered to assign a material to each part in the Onshape Part Studio. In the tutorial document linked above, this has already been done.
+Before exporting your own model, assign a material to every part in the Onshape Part Studio.
 
 <img src="assets/images/onshape-edit-material.png" alt="Onshape Edit material menu for a part" width="700">
 
 Right-click each part, select **Edit material...**, and choose a material from the Onshape material library.
 
-This is important because the material density gives each part a mass. MuJoCo needs valid masses and inertial properties to simulate the exported model correctly.
+This is important because material density gives each part a mass. MuJoCo needs valid masses and inertial properties to simulate the exported model correctly.
 
-## 7. Create Onshape API keys
+## 5. Install Python tools
+
+Install `onshape-to-robot` and the Python MuJoCo viewer:
+
+```bash
+python -m pip install onshape-to-robot mujoco
+```
+
+If your system uses `python3` instead of `python`:
+
+```bash
+python3 -m pip install onshape-to-robot mujoco
+```
+
+Verify the installation:
+
+```bash
+onshape-to-robot --help
+python -c "import mujoco; print(mujoco.__version__)"
+python -c "import mujoco.viewer; print('mujoco.viewer ok')"
+```
+
+If `onshape-to-robot` is not found, see [Troubleshooting](#15-troubleshooting).
+
+## 6. Create Onshape API keys
 
 Go to:
 
@@ -200,367 +158,170 @@ ONSHAPE_SECRET_KEY
 
 Keep the secret key private. Do not commit it to GitHub.
 
-## 8. Install MuJoCo
+## 7. Create the robot project directory
 
-Official MuJoCo website:
-
-```text
-https://mujoco.org/
-```
-
-Official MuJoCo releases:
-
-```text
-https://github.com/google-deepmind/mujoco/releases
-```
-
-You can either install MuJoCo from the official release binaries or use the Python package if your workflow is Python-based.
-
-Python installation:
-
-```bash
-python -m pip install mujoco
-```
-
-Verify the Python installation:
-
-```bash
-python -c "import mujoco; print(mujoco.__version__)"
-```
-
-The Python package includes a viewer that can be launched without installing the native MuJoCo `simulate` executable:
-
-```bash
-python -m mujoco.viewer --mjcf my-robot/robot.xml
-```
-
-If using the native MuJoCo release viewer instead, make sure the MuJoCo executable directory is available in your system `PATH`.
-
-## 9. Install onshape-to-robot
-
-Install with pip:
-
-```bash
-python -m pip install onshape-to-robot
-```
-
-If your system uses `python3` instead of `python`:
-
-```bash
-python3 -m pip install onshape-to-robot
-```
-
-Check that the command is available:
-
-```bash
-onshape-to-robot --help
-```
-
-### Fix `onshape-to-robot` not found
-
-If the terminal cannot find `onshape-to-robot` after installation, the package is usually installed but Python's script directory is not in `PATH`.
-
-Examples:
-
-```text
-onshape-to-robot : The term 'onshape-to-robot' is not recognized
-```
-
-```text
-onshape-to-robot : Termine 'onshape-to-robot' non riconosciuto
-```
-
-First check that the package is installed:
-
-```bash
-python -m pip show onshape-to-robot
-```
-
-If you only need to run it once and do not want to edit `PATH`, use the package entry point directly:
-
-```bash
-python -c "from onshape_to_robot.export import main; main()" --help
-python -c "from onshape_to_robot.export import main; main()" my-robot
-```
-
-To fix `PATH`, first find the directory where Python installed the `onshape-to-robot` script.
+Create one directory for the export files.
 
 Windows PowerShell:
 
 ```powershell
-$Scripts = python -c "import pathlib, site, sysconfig; candidates = [sysconfig.get_path('scripts'), str(pathlib.Path(site.getuserbase()) / 'Scripts'), str(pathlib.Path(site.getusersitepackages()).parent / 'Scripts')]; print(next(p for p in candidates if p and pathlib.Path(p, 'onshape-to-robot.exe').exists()))"
-$Scripts
+mkdir my-robot
+cd my-robot
 ```
 
-Linux/macOS shell:
-
-```bash
-Scripts=$(python3 -c "import pathlib, site, sysconfig; candidates = [sysconfig.get_path('scripts'), str(pathlib.Path(site.getuserbase()) / 'bin'), str(pathlib.Path(site.getusersitepackages()).parent / 'bin')]; print(next(p for p in candidates if p and pathlib.Path(p, 'onshape-to-robot').exists()))")
-echo "$Scripts"
-```
-
-Add it to the current terminal session.
-
-Windows PowerShell:
-
-```powershell
-$env:Path += ";$Scripts"
-onshape-to-robot --help
-```
-
-Linux/macOS shell:
-
-```bash
-export PATH="$PATH:$Scripts"
-onshape-to-robot --help
-```
-
-To make the Windows fix permanent for the current user:
-
-```powershell
-$UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
-if (($UserPath -split ";") -notcontains $Scripts) {
-  $NewPath = if ([string]::IsNullOrWhiteSpace($UserPath)) { $Scripts } else { "$UserPath;$Scripts" }
-  [Environment]::SetEnvironmentVariable("Path", $NewPath, "User")
-}
-```
-
-Close and reopen PowerShell, then verify:
-
-```powershell
-onshape-to-robot --help
-```
-
-## 10. Ubuntu setup
-
-Create a project directory:
+Linux/macOS:
 
 ```bash
 mkdir my-robot
 cd my-robot
 ```
 
-Create a `.env` file:
+All following commands assume that the terminal is inside `my-robot`.
+
+## 8. Create `.env`
+
+Create the credential file inside `my-robot`.
+
+Windows PowerShell:
+
+```powershell
+notepad .env
+```
+
+Linux/macOS:
 
 ```bash
 nano .env
 ```
 
-Add:
-
-```bash
-ONSHAPE_API=https://cad.onshape.com
-ONSHAPE_ACCESS_KEY=LA_TUA_ACCESS_KEY
-ONSHAPE_SECRET_KEY=LA_TUA_SECRET_KEY
-```
-
-Alternatively, export the variables in your shell:
-
-```bash
-export ONSHAPE_API=https://cad.onshape.com
-export ONSHAPE_ACCESS_KEY=LA_TUA_ACCESS_KEY
-export ONSHAPE_SECRET_KEY=LA_TUA_SECRET_KEY
-```
-
-To make them permanent, add them to `~/.bashrc`:
-
-```bash
-echo 'export ONSHAPE_API=https://cad.onshape.com' >> ~/.bashrc
-echo 'export ONSHAPE_ACCESS_KEY=LA_TUA_ACCESS_KEY' >> ~/.bashrc
-echo 'export ONSHAPE_SECRET_KEY=LA_TUA_SECRET_KEY' >> ~/.bashrc
-source ~/.bashrc
-```
-
-Verify:
-
-```bash
-echo $ONSHAPE_API
-echo $ONSHAPE_ACCESS_KEY
-echo $ONSHAPE_SECRET_KEY
-```
-
-## 11. Windows setup
-
-Create the project directory:
-
-```cmd
-cd %USERPROFILE%\Documents
-mkdir my-robot
-cd my-robot
-```
-
-Create a `.env` file:
-
-```cmd
-notepad .env
-```
-
-Add:
+Add your Onshape credentials:
 
 ```text
 ONSHAPE_API=https://cad.onshape.com
-ONSHAPE_ACCESS_KEY=LA_TUA_ACCESS_KEY
-ONSHAPE_SECRET_KEY=LA_TUA_SECRET_KEY
+ONSHAPE_ACCESS_KEY=YOUR_ACCESS_KEY
+ONSHAPE_SECRET_KEY=YOUR_SECRET_KEY
 ```
 
-Do not use `export` in Windows `.env` files.
+Do not add `export` in `.env`.
 
 Correct:
 
 ```text
-ONSHAPE_ACCESS_KEY=LA_TUA_ACCESS_KEY
+ONSHAPE_ACCESS_KEY=YOUR_ACCESS_KEY
 ```
 
 Incorrect:
 
 ```text
-export ONSHAPE_ACCESS_KEY=LA_TUA_ACCESS_KEY
+export ONSHAPE_ACCESS_KEY=YOUR_ACCESS_KEY
 ```
 
-You can also set the variables globally using `setx`:
+Important: `onshape-to-robot` loads `.env` from the current directory or one of its parent directories. If `.env` is inside `my-robot`, run the export from inside `my-robot`.
 
-```cmd
-setx ONSHAPE_API "https://cad.onshape.com"
-setx ONSHAPE_ACCESS_KEY "LA_TUA_ACCESS_KEY"
-setx ONSHAPE_SECRET_KEY "LA_TUA_SECRET_KEY"
+## 9. Create `config.json`
+
+Create the configuration file inside `my-robot`.
+
+Windows PowerShell:
+
+```powershell
+notepad config.json
 ```
 
-After using `setx`, close the terminal and open a new one.
-
-Verify:
-
-```cmd
-echo %ONSHAPE_API%
-echo %ONSHAPE_ACCESS_KEY%
-echo %ONSHAPE_SECRET_KEY%
-```
-
-If you want to set the variables only for the current terminal session:
-
-```cmd
-set ONSHAPE_API=https://cad.onshape.com
-set ONSHAPE_ACCESS_KEY=LA_TUA_ACCESS_KEY
-set ONSHAPE_SECRET_KEY=LA_TUA_SECRET_KEY
-```
-
-## 12. Create `config.json`
-
-Inside the project directory:
-
-```bash
-my-robot/
-├── .env
-└── config.json
-```
-
-Create `config.json`.
-
-Ubuntu:
+Linux/macOS:
 
 ```bash
 nano config.json
 ```
 
-Windows:
-
-```cmd
-notepad config.json
-```
-
-Minimal MuJoCo configuration:
+Minimal MuJoCo configuration for this tutorial:
 
 ```json
 {
   "url": "https://cad.onshape.com/documents/371b06a42f475c9907de5e85/w/adb936e8683c4e5f511239d8/e/13316bfea1db3d35234ddf73",
-  "output_format": "mujoco"
-}
-```
-
-This URL points to the Onshape Assembly used in this tutorial. For your own robot, replace it with the Assembly URL copied from Onshape.
-
-If the Onshape document contains more than one assembly, specify the assembly name:
-
-```json
-{
-  "url": "https://cad.onshape.com/documents/<DOCUMENT_ID>/w/<WORKSPACE_ID>/e/<ELEMENT_ID>",
   "output_format": "mujoco",
   "assembly_name": "Assembly 1"
 }
 ```
 
-## 13. Run the export
+For your own robot, replace `url` with the Assembly URL copied from Onshape.
 
-From the directory containing `my-robot`:
-
-Ubuntu:
-
-```bash
-cd ..
-onshape-to-robot my-robot
-```
-
-Windows:
-
-```cmd
-cd %USERPROFILE%\Documents
-onshape-to-robot my-robot
-```
-
-If the terminal cannot find `onshape-to-robot`, either fix `PATH` using section 9 or use the package entry point directly.
-
-Example:
-
-```bash
-python -c "from onshape_to_robot.export import main; main()" my-robot
-```
-
-## 14. Expected output
-
-After a successful export, the project directory should contain generated robot files and assets.
-
-Example structure:
+At this point, the project directory should contain:
 
 ```text
 my-robot/
-├── .env
-├── config.json
-├── robot.xml
-└── assets/
+|-- .env
+`-- config.json
 ```
 
-The exact generated filenames may depend on the exporter version and configuration.
+## 10. Run the export
 
-## 15. Test in MuJoCo
-
-If you installed MuJoCo with `pip`, use the Python viewer:
+Run the command from inside `my-robot`:
 
 ```bash
-python -m mujoco.viewer --mjcf my-robot/robot.xml
+onshape-to-robot .
 ```
 
-On Windows PowerShell:
+If `onshape-to-robot` is installed but not available from the terminal, use the Python entry point:
+
+```bash
+python -c "from onshape_to_robot.export import main; main()" .
+```
+
+## 11. Check the generated files
+
+After a successful MuJoCo export, `my-robot` should contain:
+
+```text
+my-robot/
+|-- .env
+|-- config.json
+|-- robot.xml
+|-- scene.xml
+`-- assets/
+```
+
+Use the files this way:
+
+```text
+robot.xml -> exported robot model
+scene.xml -> MuJoCo scene that includes robot.xml
+assets/   -> exported meshes and part metadata
+```
+
+For viewer tests, use `scene.xml`.
+
+## 12. Test in MuJoCo
+
+Open the generated scene with the Python MuJoCo viewer:
+
+```bash
+python -m mujoco.viewer --mjcf scene.xml
+```
+
+On Windows PowerShell, the same command works from inside `my-robot`:
 
 ```powershell
-python -m mujoco.viewer --mjcf .\my-robot\robot.xml
+python -m mujoco.viewer --mjcf .\scene.xml
 ```
 
 If you installed the native MuJoCo release and its `bin` directory is in `PATH`, you can also use:
 
 ```bash
-simulate my-robot/robot.xml
+simulate scene.xml
 ```
 
 On Windows with the native viewer:
 
 ```cmd
-simulate.exe my-robot\robot.xml
+simulate.exe scene.xml
 ```
 
-If `simulate` is not found, either use the Python viewer above or add the native MuJoCo `bin` directory to `PATH`.
+If `simulate` is not found, use the Python viewer command instead.
 
-## 16. Check the exported joints
+## 13. Check the exported joints
 
-Open the generated MuJoCo XML and inspect the joints.
+Open `robot.xml` and inspect the joints.
 
 Expected examples:
 
@@ -584,9 +345,7 @@ dof_left_finger_inv
 dof_right_finger_inv
 ```
 
-If one finger closes and the other opens, invert only the wrong one.
-
-Example:
+If one finger closes and the other opens, invert only the wrong one:
 
 ```text
 dof_left_finger
@@ -600,35 +359,60 @@ dof_left_finger_inv
 dof_right_finger
 ```
 
-## 17. Common errors
+## 14. Full command sequence
+
+From a clean terminal, the local workflow is:
+
+```bash
+python -m pip install onshape-to-robot mujoco
+mkdir my-robot
+cd my-robot
+```
+
+Create `.env`, then create `config.json`, then run:
+
+```bash
+onshape-to-robot .
+python -m mujoco.viewer --mjcf scene.xml
+```
+
+On Windows PowerShell, after creating `.env` and `config.json`:
+
+```powershell
+onshape-to-robot .
+python -m mujoco.viewer --mjcf .\scene.xml
+```
+
+## 15. Troubleshooting
 
 ### `ERROR: No Onshape API access key are set`
 
-The environment variables are not visible to the current terminal.
+The `.env` file is missing, has the wrong variable names, or is not visible from the current terminal location.
 
-On Windows, if you used:
+Check that the file is here:
 
-```cmd
-setx ONSHAPE_ACCESS_KEY "LA_TUA_ACCESS_KEY"
+```text
+my-robot/.env
 ```
 
-you must close and reopen the terminal.
+Make sure it contains exactly:
 
-Check:
-
-```cmd
-echo %ONSHAPE_ACCESS_KEY%
+```text
+ONSHAPE_API=https://cad.onshape.com
+ONSHAPE_ACCESS_KEY=YOUR_ACCESS_KEY
+ONSHAPE_SECRET_KEY=YOUR_SECRET_KEY
 ```
 
-On Ubuntu, check:
+Then run the export from inside `my-robot`:
 
 ```bash
-echo $ONSHAPE_ACCESS_KEY
+cd my-robot
+onshape-to-robot .
 ```
 
-### `onshape-to-robot is not recognized as an internal or external command`
+### `onshape-to-robot` is not recognized
 
-The Python Scripts directory is not in `PATH`.
+The package is installed, but Python's script directory is not in `PATH`.
 
 First check that the package is installed:
 
@@ -636,15 +420,13 @@ First check that the package is installed:
 python -m pip show onshape-to-robot
 ```
 
-If you need an immediate workaround, run the package entry point directly:
+Immediate workaround:
 
 ```bash
-python -c "from onshape_to_robot.export import main; main()" my-robot
+python -c "from onshape_to_robot.export import main; main()" .
 ```
 
-For a permanent fix, use the `Fix onshape-to-robot not found` steps in section 9.
-
-On Windows PowerShell, the temporary `PATH` fix is:
+Temporary Windows PowerShell `PATH` fix:
 
 ```powershell
 $Scripts = python -c "import pathlib, site, sysconfig; candidates = [sysconfig.get_path('scripts'), str(pathlib.Path(site.getuserbase()) / 'Scripts'), str(pathlib.Path(site.getusersitepackages()).parent / 'Scripts')]; print(next(p for p in candidates if p and pathlib.Path(p, 'onshape-to-robot.exe').exists()))"
@@ -652,20 +434,20 @@ $env:Path += ";$Scripts"
 onshape-to-robot --help
 ```
 
-### `simulate` is not recognized as an internal or external command
+### `simulate` is not recognized
 
 The native MuJoCo viewer executable is not installed or its `bin` directory is not in `PATH`.
 
-If you installed MuJoCo with `pip`, use the Python viewer instead:
+Use the Python viewer instead:
 
 ```bash
-python -m mujoco.viewer --mjcf my-robot/robot.xml
+python -m mujoco.viewer --mjcf scene.xml
 ```
 
 On Windows PowerShell:
 
 ```powershell
-python -m mujoco.viewer --mjcf .\my-robot\robot.xml
+python -m mujoco.viewer --mjcf .\scene.xml
 ```
 
 If Python cannot import `mujoco`, install it first:
@@ -700,7 +482,7 @@ Fixed links should start with:
 fix_
 ```
 
-## 18. Security note
+## 16. Security note
 
 Never commit `.env` files or API keys to GitHub.
 
